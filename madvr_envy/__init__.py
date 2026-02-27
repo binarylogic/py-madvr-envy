@@ -5,4 +5,4 @@ from madvr_envy.client import MadvrEnvyClient
 
 __all__ = ["MadvrEnvyClient", "commands", "adapter", "ha_bridge"]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

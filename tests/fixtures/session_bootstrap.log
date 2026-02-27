@@ -1,0 +1,36 @@
+WELCOME to Envy v1.1.3
+OK
+OpenMenu Settings
+SettingPage hdrSettings "hdr settings"
+SettingPage.
+ConfigPage displayConfig "display config"
+ConfigPage.
+ProfileGroup displayProfiles "Displays"
+ProfileGroup customProfileGroup1 "Ambient Light"
+ProfileGroup.
+Profile sourceProfiles_profile1 "Oppo Blu-Ray Player"
+Profile.
+Option INTEGER hdrHighlightRecovery 2 3
+Option STRING hdrMode "toneMapMath" "toneMapMath"
+Option.
+ActiveProfile SOURCE 1
+IncomingSignalInfo 3840x2160 23.976p 2D 422 10bit HDR10 2020 TV 16:9
+OutgoingSignalInfo 3840x2160 23.976p 2D RGB 12bit SDR 2020 TV
+AspectRatio 3840:1600 2.400 240 "Panavision"
+MaskingRatio 3840:1700 2.259 220
+MacAddress 01-02-03-04-05-06
+Temperatures 74 67 41 45
+ChangeOption INTEGER hdrHighlightRecovery 3 3
+InheritOption INTEGER temporary\\hdrNits 120
+ResetTemporary
+Upload3DLUTFile "BT.2020.3dlut"
+Rename3DLUTFile "BT.2020.3dlut" "BT.2021.3dlut"
+Delete3DLUTFile "BT.2021.3dlut"
+UploadSettingsFile
+StoreSettings Installer "Installer Settings"
+RestoreSettings Suggested
+CloseMenu
+NoSignal
+Hotplug
+RefreshLicenseInfo
+Force1080p60Output

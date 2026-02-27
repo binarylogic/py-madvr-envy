@@ -23,6 +23,10 @@ class EnvySnapshot:
     active_profile_index: int | None
     current_menu: str | None
     aspect_ratio_mode: str | None
+    incoming_signal: tuple[str, str, str, str, str, str, str, str, str] | None
+    outgoing_signal: tuple[str, str, str, str, str, str, str, str] | None
+    aspect_ratio: tuple[str, float, int, str] | None
+    masking_ratio: tuple[str, float, int] | None
     tone_map_enabled: bool | None
     temperatures: tuple[int, int, int, int] | None
 
@@ -87,6 +91,50 @@ def snapshot_from_state(state: EnvyState) -> EnvySnapshot:
         inherit_path = state.last_inherit_option.option_id_path
         inherit_effective = state.last_inherit_option.effective_value
 
+    incoming_signal: tuple[str, str, str, str, str, str, str, str, str] | None = None
+    if state.incoming_signal is not None:
+        incoming_signal = (
+            state.incoming_signal.resolution,
+            state.incoming_signal.frame_rate,
+            state.incoming_signal.signal_type,
+            state.incoming_signal.color_space,
+            state.incoming_signal.bit_depth,
+            state.incoming_signal.hdr_mode,
+            state.incoming_signal.colorimetry,
+            state.incoming_signal.black_levels,
+            state.incoming_signal.aspect_ratio,
+        )
+
+    outgoing_signal: tuple[str, str, str, str, str, str, str, str] | None = None
+    if state.outgoing_signal is not None:
+        outgoing_signal = (
+            state.outgoing_signal.resolution,
+            state.outgoing_signal.frame_rate,
+            state.outgoing_signal.signal_type,
+            state.outgoing_signal.color_space,
+            state.outgoing_signal.bit_depth,
+            state.outgoing_signal.hdr_mode,
+            state.outgoing_signal.colorimetry,
+            state.outgoing_signal.black_levels,
+        )
+
+    aspect_ratio: tuple[str, float, int, str] | None = None
+    if state.aspect_ratio is not None:
+        aspect_ratio = (
+            state.aspect_ratio.resolution,
+            state.aspect_ratio.decimal_ratio,
+            state.aspect_ratio.integer_ratio,
+            state.aspect_ratio.name,
+        )
+
+    masking_ratio: tuple[str, float, int] | None = None
+    if state.masking_ratio is not None:
+        masking_ratio = (
+            state.masking_ratio.resolution,
+            state.masking_ratio.decimal_ratio,
+            state.masking_ratio.integer_ratio,
+        )
+
     return EnvySnapshot(
         synced=state.synced,
         version=state.version,
@@ -98,6 +146,10 @@ def snapshot_from_state(state: EnvyState) -> EnvySnapshot:
         active_profile_index=state.active_profile_index,
         current_menu=state.current_menu,
         aspect_ratio_mode=state.aspect_ratio_mode,
+        incoming_signal=incoming_signal,
+        outgoing_signal=outgoing_signal,
+        aspect_ratio=aspect_ratio,
+        masking_ratio=masking_ratio,
         tone_map_enabled=state.tone_map_enabled,
         temperatures=temperatures,
         settings_pages=tuple(sorted(state.settings_pages.items(), key=lambda item: item[0])),

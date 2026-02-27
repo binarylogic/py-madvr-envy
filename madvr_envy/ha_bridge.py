@@ -51,6 +51,54 @@ def coordinator_payload(snapshot: EnvySnapshot) -> dict[str, Any]:
         "active_profile_index": snapshot.active_profile_index,
         "current_menu": snapshot.current_menu,
         "aspect_ratio_mode": snapshot.aspect_ratio_mode,
+        "incoming_signal": (
+            {
+                "resolution": snapshot.incoming_signal[0],
+                "frame_rate": snapshot.incoming_signal[1],
+                "signal_type": snapshot.incoming_signal[2],
+                "color_space": snapshot.incoming_signal[3],
+                "bit_depth": snapshot.incoming_signal[4],
+                "hdr_mode": snapshot.incoming_signal[5],
+                "colorimetry": snapshot.incoming_signal[6],
+                "black_levels": snapshot.incoming_signal[7],
+                "aspect_ratio": snapshot.incoming_signal[8],
+            }
+            if snapshot.incoming_signal is not None
+            else None
+        ),
+        "outgoing_signal": (
+            {
+                "resolution": snapshot.outgoing_signal[0],
+                "frame_rate": snapshot.outgoing_signal[1],
+                "signal_type": snapshot.outgoing_signal[2],
+                "color_space": snapshot.outgoing_signal[3],
+                "bit_depth": snapshot.outgoing_signal[4],
+                "hdr_mode": snapshot.outgoing_signal[5],
+                "colorimetry": snapshot.outgoing_signal[6],
+                "black_levels": snapshot.outgoing_signal[7],
+            }
+            if snapshot.outgoing_signal is not None
+            else None
+        ),
+        "aspect_ratio": (
+            {
+                "resolution": snapshot.aspect_ratio[0],
+                "decimal_ratio": snapshot.aspect_ratio[1],
+                "integer_ratio": snapshot.aspect_ratio[2],
+                "name": snapshot.aspect_ratio[3],
+            }
+            if snapshot.aspect_ratio is not None
+            else None
+        ),
+        "masking_ratio": (
+            {
+                "resolution": snapshot.masking_ratio[0],
+                "decimal_ratio": snapshot.masking_ratio[1],
+                "integer_ratio": snapshot.masking_ratio[2],
+            }
+            if snapshot.masking_ratio is not None
+            else None
+        ),
         "tone_map_enabled": snapshot.tone_map_enabled,
         "temperatures": snapshot.temperatures,
         "settings_pages": dict(snapshot.settings_pages),

@@ -32,8 +32,39 @@ jobs:
           name: dist
           path: dist/*
 
-  publish-pypi:
+  verify:
     needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Validate package metadata
+        run: uv run --isolated --with twine twine check dist/*
+
+      - name: Smoke test wheel install
+        run: |
+          python -m venv .venv-smoke
+          . .venv-smoke/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install dist/*.whl
+          python -c "import madvr_envy; from madvr_envy.client import MadvrEnvyClient"
+
+  publish-pypi:
+    needs: verify
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, 'rc')
     environment: pypi
@@ -51,7 +82,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-testpypi:
-    needs: build
+    needs: verify
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, 'rc')
     environment: testpypi

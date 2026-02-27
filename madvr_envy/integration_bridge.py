@@ -103,16 +103,19 @@ def parse_profile_id(profile_id: str, fallback_group: object) -> tuple[str, int]
 
 def build_profile_options(data: Mapping[str, object]) -> list[ProfileOption]:
     """Build sorted profile selection options from adapter payload."""
-    group_names = data.get("profile_groups")
-    if not isinstance(group_names, Mapping):
-        group_names = {}
+    raw_group_names = data.get("profile_groups")
+    group_names: dict[str, str] = {}
+    if isinstance(raw_group_names, Mapping):
+        for group_id, group_name in raw_group_names.items():
+            if isinstance(group_id, str) and isinstance(group_name, str):
+                group_names[group_id] = group_name
 
-    profiles = data.get("profiles")
-    if not isinstance(profiles, Mapping):
+    raw_profiles = data.get("profiles")
+    if not isinstance(raw_profiles, Mapping):
         return []
 
     options: list[ProfileOption] = []
-    for profile_id, profile_name in profiles.items():
+    for profile_id, profile_name in raw_profiles.items():
         if not isinstance(profile_id, str) or not isinstance(profile_name, str):
             continue
 
@@ -122,8 +125,6 @@ def build_profile_options(data: Mapping[str, object]) -> list[ProfileOption]:
         group_id, index = parsed
 
         group_label = group_names.get(group_id, group_id)
-        if not isinstance(group_label, str):
-            group_label = group_id
 
         options.append(
             ProfileOption(

@@ -367,7 +367,7 @@ class MadvrEnvyClient:
         if transport is None:
             return
 
-        with suppress(OSError):
+        with suppress(OSError, exceptions.NotConnectedError):
             await transport.close()
 
         self._emit("disconnected", None)

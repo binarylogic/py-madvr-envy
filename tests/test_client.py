@@ -11,6 +11,7 @@ from madvr_envy.exceptions import (
     EnumerationTimeoutError,
     NotConnectedError,
 )
+from madvr_envy.runtime import PowerState
 
 
 class FakeTransport:
@@ -136,6 +137,47 @@ async def test_typed_command_wrapper_sends_expected_payload():
     assert transport.sent[-3] == "Toggle ToneMap"
     assert transport.sent[-2] == "ToneMapOn"
     assert transport.sent[-1] == "ToneMapOff"
+
+    await client.stop()
+
+
+@pytest.mark.asyncio
+async def test_power_on_and_wake_send_power_keypress():
+    transport = FakeTransport(incoming_lines=["WELCOME to Envy v1.1.3"])
+    client = MadvrEnvyClient(
+        host="unused",
+        transport_factory=FakeTransportFactory([transport]),
+        read_timeout=0.01,
+    )
+
+    await client.start()
+    await client.wait_synced(timeout=1)
+
+    await client.power_on(wait_for_ack=False)
+    await client.wake(wait_for_ack=False)
+
+    assert transport.sent[-2] == "KeyPress POWER"
+    assert transport.sent[-1] == "KeyPress POWER"
+
+    await client.stop()
+
+
+@pytest.mark.asyncio
+async def test_runtime_snapshot_exposes_semantic_power_state():
+    transport = FakeTransport(incoming_lines=["WELCOME to Envy v1.1.3"])
+    client = MadvrEnvyClient(
+        host="unused",
+        transport_factory=FakeTransportFactory([transport]),
+        read_timeout=0.01,
+    )
+
+    await client.start()
+    await client.wait_synced(timeout=1)
+
+    assert client.power_state is PowerState.ON
+    assert client.runtime_snapshot.connected is True
+    assert client.runtime_snapshot.power_state is PowerState.ON
+    assert client.runtime_snapshot.version == "1.1.3"
 
     await client.stop()
 

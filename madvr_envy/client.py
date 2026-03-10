@@ -30,6 +30,7 @@ from madvr_envy.protocol import (
     build_command,
     parse_message,
 )
+from madvr_envy.runtime import EnvyRuntimeSnapshot, PowerState, runtime_snapshot_from_state
 from madvr_envy.state import EnvyState
 from madvr_envy.transport import TcpTransport
 
@@ -109,6 +110,16 @@ class MadvrEnvyClient:
     @property
     def connected(self) -> bool:
         return self._transport is not None and self._transport.connected
+
+    @property
+    def power_state(self) -> PowerState:
+        """Return the normalized current power state."""
+        return self.runtime_snapshot.power_state
+
+    @property
+    def runtime_snapshot(self) -> EnvyRuntimeSnapshot:
+        """Return a semantic snapshot of the current runtime state."""
+        return runtime_snapshot_from_state(self.state, connected=self.connected)
 
     def register_callback(self, callback: Callback) -> None:
         self._callbacks.add(callback)
@@ -191,6 +202,14 @@ class MadvrEnvyClient:
 
     async def power_off(self, wait_for_ack: bool = True) -> Message | None:
         return await self.send_raw(cmd.power_off(), wait_for_ack=wait_for_ack)
+
+    async def power_on(self, wait_for_ack: bool = True) -> Message | None:
+        """Wake the Envy using its documented POWER command path."""
+        return await self.key_press("POWER", wait_for_ack=wait_for_ack)
+
+    async def wake(self, wait_for_ack: bool = True) -> Message | None:
+        """Alias for ``power_on`` for higher-level lifecycle integrations."""
+        return await self.power_on(wait_for_ack=wait_for_ack)
 
     async def standby(self, wait_for_ack: bool = True) -> Message | None:
         return await self.send_raw(cmd.standby(), wait_for_ack=wait_for_ack)

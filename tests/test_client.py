@@ -60,6 +60,13 @@ class FakeTransport:
         self._incoming.put_nowait(line)
 
 
+class CloseRaisesNotConnectedTransport(FakeTransport):
+    async def close(self):
+        self.close_calls += 1
+        self.connected = False
+        raise NotConnectedError()
+
+
 class FakeTransportFactory:
     def __init__(self, transports):
         self._transports = deque(transports)
@@ -235,6 +242,56 @@ async def test_reconnect_uses_backoff_until_success():
     assert sleep_calls == [0.1]
 
     await client.stop()
+
+
+@pytest.mark.asyncio
+async def test_stop_swallows_not_connected_during_transport_close():
+    transport = CloseRaisesNotConnectedTransport(incoming_lines=["WELCOME to Envy v1.1.3"])
+    client = MadvrEnvyClient(
+        host="unused",
+        transport_factory=FakeTransportFactory([transport]),
+        read_timeout=0.01,
+    )
+
+    await client.start()
+    await client.wait_synced(timeout=1)
+    await client.stop()
+
+    assert transport.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_stop_during_reconnect_shuts_down_cleanly():
+    first = FakeTransport(incoming_lines=["WELCOME to Envy v1.1.3", None])
+    failing = FakeTransport(connect_exception=ConnectionFailedError("network down"))
+
+    sleep_gate = asyncio.Event()
+    sleep_calls = []
+
+    async def fake_sleep(delay):
+        sleep_calls.append(delay)
+        await sleep_gate.wait()
+
+    client = MadvrEnvyClient(
+        host="unused",
+        transport_factory=FakeTransportFactory([first, failing]),
+        read_timeout=0.01,
+        reconnect_initial_backoff=0.1,
+        reconnect_max_backoff=0.4,
+        reconnect_jitter=0.0,
+        sleep_func=fake_sleep,
+    )
+
+    await client.start()
+    await client.wait_synced(timeout=1)
+    await asyncio.wait_for(_wait_for(lambda: sleep_calls == [0.1]), timeout=1)
+
+    stop_task = asyncio.create_task(client.stop())
+    await asyncio.sleep(0)
+    sleep_gate.set()
+    await stop_task
+
+    assert client.connected is False
 
 
 @pytest.mark.asyncio

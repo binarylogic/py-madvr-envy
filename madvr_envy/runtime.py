@@ -280,10 +280,7 @@ def _profile_catalog(snapshot: EnvySnapshot) -> ProfileCatalog:
         group_id, index = parsed
         profiles.append(Profile(profile_id=profile_id, group_id=group_id, index=index, name=name))
 
-    active_profiles = [
-        ActiveProfile(group_id=group_id, index=str(index))
-        for group_id, index in snapshot.active_profiles
-    ]
+    active_profiles = [ActiveProfile(group_id=group_id, index=str(index)) for group_id, index in snapshot.active_profiles]
 
     return ProfileCatalog(groups=groups, profiles=tuple(profiles), active_profiles=tuple(active_profiles))
 

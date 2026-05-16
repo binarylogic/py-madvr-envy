@@ -15,13 +15,14 @@ from madvr_envy.runtime import PowerState
 
 
 class FakeTransport:
-    def __init__(self, incoming_lines=None, connect_exception=None):
+    def __init__(self, incoming_lines=None, connect_exception=None, responses=None):
         self.connected = False
         self.sent: list[str] = []
         self.connect_calls = 0
         self.close_calls = 0
         self._incoming = asyncio.Queue()
         self._connect_exception = connect_exception
+        self._responses = responses or {}
 
         for line in incoming_lines or []:
             self._incoming.put_nowait(line)
@@ -55,6 +56,8 @@ class FakeTransport:
         if not self.connected:
             raise NotConnectedError()
         self.sent.append(line)
+        for response in self._responses.get(line, ()):
+            self.push(response)
 
     def push(self, line):
         self._incoming.put_nowait(line)
@@ -191,7 +194,40 @@ async def test_device_snapshot_exposes_semantic_power_state():
 
 @pytest.mark.asyncio
 async def test_refresh_device_returns_typed_semantic_snapshot():
-    transport = FakeTransport(incoming_lines=["WELCOME to Envy v1.1.3"])
+    transport = FakeTransport(
+        incoming_lines=["WELCOME to Envy v1.1.3"],
+        responses={
+            "GetTemperatures": ["Temperatures 74 67 41 45", "OK"],
+            "GetIncomingSignalInfo": [
+                "IncomingSignalInfo 3840x2160 23.976p 2D 422 10bit HDR10 2020 TV 16:9",
+                "OK",
+            ],
+            "GetOutgoingSignalInfo": [
+                "OutgoingSignalInfo 3840x2160 23.976p 2D RGB 12bit SDR 2020 TV",
+                "OK",
+            ],
+            "GetAspectRatio": ['AspectRatio 3840:1600 2.400 240 "Panavision"', "OK"],
+            "GetMaskingRatio": ["MaskingRatio 3840:1700 2.259 220", "OK"],
+            "EnumProfileGroups": [
+                'ProfileGroup displayProfiles "Displays"',
+                'ProfileGroup sourceProfiles "Sources"',
+                "ProfileGroup.",
+                "OK",
+            ],
+            "EnumProfiles displayProfiles": [
+                'Profile displayProfiles_1 "Projector"',
+                "Profile.",
+                "OK",
+            ],
+            "GetActiveProfile displayProfiles": ["ActiveProfile displayProfiles 1", "OK"],
+            "EnumProfiles sourceProfiles": [
+                'Profile sourceProfiles_1 "Apple TV"',
+                "Profile.",
+                "OK",
+            ],
+            "GetActiveProfile sourceProfiles": ["ActiveProfile sourceProfiles 1", "OK"],
+        },
+    )
     client = MadvrEnvyClient(
         host="unused",
         transport_factory=FakeTransportFactory([transport]),
@@ -202,37 +238,6 @@ async def test_refresh_device_returns_typed_semantic_snapshot():
     await client.start()
     await client.wait_synced(timeout=1)
 
-    async def push_refresh_responses():
-        for line in (
-            "Temperatures 74 67 41 45",
-            "OK",
-            "IncomingSignalInfo 3840x2160 23.976p 2D 422 10bit HDR10 2020 TV 16:9",
-            "OK",
-            "OutgoingSignalInfo 3840x2160 23.976p 2D RGB 12bit SDR 2020 TV",
-            "OK",
-            'AspectRatio 3840:1600 2.400 240 "Panavision"',
-            "OK",
-            "MaskingRatio 3840:1700 2.259 220",
-            "OK",
-            'ProfileGroup displayProfiles "Displays"',
-            'ProfileGroup sourceProfiles "Sources"',
-            "ProfileGroup.",
-            "OK",
-            'Profile displayProfiles_1 "Projector"',
-            "Profile.",
-            "OK",
-            "ActiveProfile displayProfiles 1",
-            "OK",
-            'Profile sourceProfiles_1 "Apple TV"',
-            "Profile.",
-            "OK",
-            "ActiveProfile sourceProfiles 1",
-            "OK",
-        ):
-            await asyncio.sleep(0)
-            transport.push(line)
-
-    asyncio.create_task(push_refresh_responses())
     snapshot = await client.refresh_device()
 
     assert transport.sent == [

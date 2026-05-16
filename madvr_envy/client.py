@@ -14,23 +14,30 @@ from madvr_envy import commands as cmd
 from madvr_envy import exceptions
 from madvr_envy.adapter import AdapterEvent, EnvySnapshot, EnvyStateAdapter, StateDelta
 from madvr_envy.protocol import (
+    ActiveProfileMessage,
+    AspectRatioMessage,
     ConfigPageEndMessage,
     ConfigPageMessage,
     ErrorMessage,
+    IncomingSignalInfoMessage,
+    MaskingRatioMessage,
     Message,
+    NoSignalMessage,
     OkMessage,
     OptionEndMessage,
     OptionMessage,
+    OutgoingSignalInfoMessage,
     ProfileEndMessage,
     ProfileGroupEndMessage,
     ProfileGroupMessage,
     ProfileMessage,
     SettingPageEndMessage,
     SettingPageMessage,
+    TemperaturesMessage,
     build_command,
     parse_message,
 )
-from madvr_envy.runtime import EnvyRuntimeSnapshot, PowerState, runtime_snapshot_from_state
+from madvr_envy.runtime import EnvyDeviceSnapshot, PowerState, device_snapshot_from_state
 from madvr_envy.state import EnvyState
 from madvr_envy.transport import TcpTransport
 
@@ -39,6 +46,7 @@ AdapterCallback = Callable[[EnvySnapshot, list[StateDelta], list[AdapterEvent]],
 RandomFunc = Callable[[], float]
 ItemMessageT = TypeVar("ItemMessageT", bound=Message)
 EndMessageT = TypeVar("EndMessageT", bound=Message)
+MessageT = TypeVar("MessageT", bound=Message)
 
 
 class Transport(Protocol):
@@ -114,12 +122,12 @@ class MadvrEnvyClient:
     @property
     def power_state(self) -> PowerState:
         """Return the normalized current power state."""
-        return self.runtime_snapshot.power_state
+        return self.device_snapshot.power_state
 
     @property
-    def runtime_snapshot(self) -> EnvyRuntimeSnapshot:
-        """Return a semantic snapshot of the current runtime state."""
-        return runtime_snapshot_from_state(self.state, connected=self.connected)
+    def device_snapshot(self) -> EnvyDeviceSnapshot:
+        """Return a semantic snapshot of the current device state."""
+        return device_snapshot_from_state(self.state, connected=self.connected)
 
     def register_callback(self, callback: Callback) -> None:
         self._callbacks.add(callback)
@@ -235,20 +243,23 @@ class MadvrEnvyClient:
     async def display_message(self, timeout_seconds: int, text: str, wait_for_ack: bool = True) -> Message | None:
         return await self.send_raw(cmd.display_message(timeout_seconds, text), wait_for_ack=wait_for_ack)
 
-    async def get_incoming_signal_info(self, wait_for_ack: bool = True) -> Message | None:
-        return await self.send_raw(cmd.get_incoming_signal_info(), wait_for_ack=wait_for_ack)
+    async def get_incoming_signal_info(self) -> IncomingSignalInfoMessage | NoSignalMessage:
+        return await self._request_message(
+            cmd.get_incoming_signal_info(),
+            (IncomingSignalInfoMessage, NoSignalMessage),
+        )
 
-    async def get_outgoing_signal_info(self, wait_for_ack: bool = True) -> Message | None:
-        return await self.send_raw(cmd.get_outgoing_signal_info(), wait_for_ack=wait_for_ack)
+    async def get_outgoing_signal_info(self) -> OutgoingSignalInfoMessage:
+        return await self._request_message(cmd.get_outgoing_signal_info(), (OutgoingSignalInfoMessage,))
 
-    async def get_aspect_ratio(self, wait_for_ack: bool = True) -> Message | None:
-        return await self.send_raw(cmd.get_aspect_ratio(), wait_for_ack=wait_for_ack)
+    async def get_aspect_ratio(self) -> AspectRatioMessage:
+        return await self._request_message(cmd.get_aspect_ratio(), (AspectRatioMessage,))
 
-    async def get_masking_ratio(self, wait_for_ack: bool = True) -> Message | None:
-        return await self.send_raw(cmd.get_masking_ratio(), wait_for_ack=wait_for_ack)
+    async def get_masking_ratio(self) -> MaskingRatioMessage:
+        return await self._request_message(cmd.get_masking_ratio(), (MaskingRatioMessage,))
 
-    async def get_temperatures(self, wait_for_ack: bool = True) -> Message | None:
-        return await self.send_raw(cmd.get_temperatures(), wait_for_ack=wait_for_ack)
+    async def get_temperatures(self) -> TemperaturesMessage:
+        return await self._request_message(cmd.get_temperatures(), (TemperaturesMessage,))
 
     async def get_mac_address(self, wait_for_ack: bool = True) -> Message | None:
         return await self.send_raw(cmd.get_mac_address(), wait_for_ack=wait_for_ack)
@@ -259,8 +270,8 @@ class MadvrEnvyClient:
     async def activate_profile(self, profile_group: str | int, profile_id: int, wait_for_ack: bool = True) -> Message | None:
         return await self.send_raw(cmd.activate_profile(profile_group, profile_id), wait_for_ack=wait_for_ack)
 
-    async def get_active_profile(self, profile_group: str | int, wait_for_ack: bool = True) -> Message | None:
-        return await self.send_raw(cmd.get_active_profile(profile_group), wait_for_ack=wait_for_ack)
+    async def get_active_profile(self, profile_group: str | int) -> ActiveProfileMessage:
+        return await self._request_message(cmd.get_active_profile(profile_group), (ActiveProfileMessage,))
 
     async def enum_profiles(self, profile_group: str | int, wait_for_ack: bool = True) -> Message | None:
         return await self.send_raw(cmd.enum_profiles(profile_group), wait_for_ack=wait_for_ack)
@@ -316,6 +327,40 @@ class MadvrEnvyClient:
             end_type=OptionEndMessage,
             timeout=timeout,
         )
+
+    async def refresh_signal(self) -> EnvyDeviceSnapshot:
+        """Refresh signal-related state and return the resulting device snapshot."""
+        await self.get_incoming_signal_info()
+        if self.state.signal_present is True:
+            await self.get_outgoing_signal_info()
+        return self.device_snapshot
+
+    async def refresh_video_geometry(self) -> EnvyDeviceSnapshot:
+        """Refresh aspect and masking state and return the resulting device snapshot."""
+        await self.get_aspect_ratio()
+        await self.get_masking_ratio()
+        return self.device_snapshot
+
+    async def refresh_temperatures(self) -> EnvyDeviceSnapshot:
+        """Refresh temperature state and return the resulting device snapshot."""
+        await self.get_temperatures()
+        return self.device_snapshot
+
+    async def refresh_profiles(self) -> EnvyDeviceSnapshot:
+        """Refresh profile catalog and active profile state."""
+        groups = await self.enum_profile_groups_collect()
+        for group in groups:
+            await self.enum_profiles_collect(group.group_id)
+            await self.get_active_profile(group.group_id)
+        return self.device_snapshot
+
+    async def refresh_device(self) -> EnvyDeviceSnapshot:
+        """Refresh all high-value runtime state and return one typed snapshot."""
+        await self.refresh_temperatures()
+        await self.refresh_signal()
+        await self.refresh_video_geometry()
+        await self.refresh_profiles()
+        return self.device_snapshot
 
     async def query_option(self, option_id_or_path: str, wait_for_ack: bool = True) -> Message | None:
         return await self.send_raw(cmd.query_option(option_id_or_path), wait_for_ack=wait_for_ack)
@@ -503,6 +548,28 @@ class MadvrEnvyClient:
                     return items
                 if isinstance(message, item_type):
                     items.append(message)
+        finally:
+            self.deregister_callback(on_message)
+
+    async def _request_message(
+        self,
+        command_line: str,
+        expected_types: tuple[type[MessageT], ...],
+        timeout: float | None = None,
+    ) -> MessageT:
+        queue: asyncio.Queue[MessageT] = asyncio.Queue()
+
+        def on_message(event: str, message: Message | None) -> None:
+            if event != "received_message" or message is None:
+                return
+            if isinstance(message, expected_types):
+                queue.put_nowait(message)
+
+        self.register_callback(on_message)
+        try:
+            await self.send_raw(command_line, wait_for_ack=True)
+            wait_timeout = self.command_timeout if timeout is None else timeout
+            return await asyncio.wait_for(queue.get(), timeout=wait_timeout)
         finally:
             self.deregister_callback(on_message)
 

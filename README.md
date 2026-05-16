@@ -23,6 +23,9 @@ async def main() -> None:
     await client.start()
     await client.wait_synced(timeout=10)
 
+    snapshot = await client.refresh_device()
+    print(snapshot.power_state, snapshot.incoming_signal, snapshot.aspect_ratio)
+
     await client.get_mac_address(wait_for_ack=True)
     await client.display_message(3, "Hello from py-madvr-envy")
     await client.change_option("temporary\\hdrNits", 120)
@@ -70,13 +73,11 @@ For stream enumerations, use typed collectors:
 
 These helpers wait for protocol end markers and raise `EnumerationTimeoutError` if an end marker is not observed in time.
 
-## HA Adapter
+## Runtime State
 
-Use `madvr_envy.adapter.EnvyStateAdapter` to convert mutable runtime state into immutable snapshots plus typed deltas/events:
+Use `client.refresh_device()` when an integration needs a complete, typed view of the device. The client owns the protocol request sequence for runtime telemetry, video geometry, temperatures, and profiles, then returns an `EnvyDeviceSnapshot`.
 
-- `snapshot`: stable full-state view for coordinator data
-- `deltas`: field-level changes since previous snapshot
-- `events`: integration-friendly event stream (temporary resets, display changes, settings store/restore, etc.)
+For lower-level streaming consumers, `madvr_envy.adapter.EnvyStateAdapter` converts mutable runtime state into immutable snapshots plus typed deltas/events:
 
 You can wire this directly through the client:
 
@@ -91,11 +92,3 @@ def on_update(snapshot, deltas, events):
 handle = client.register_adapter_callback(adapter, on_update)
 # later: client.deregister_adapter_callback(handle)
 ```
-
-For Home Assistant coordinator/event-bus integration, use `madvr_envy.ha_bridge`:
-
-- `coordinator_payload(snapshot)`
-- `to_ha_events(events)`
-- `build_bridge_update(snapshot, deltas, events)`
-
-Reference coordinator wiring: `docs/ha_coordinator_example.py`.

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from madvr_envy.integration_bridge import (
+from madvr_envy.controls import (
     action_names,
     build_profile_options,
     iter_remote_operations,

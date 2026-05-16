@@ -14,12 +14,12 @@
 - `protocol.py`: command builder + message parser + typed models
 - `commands.py`: typed command constructors aligned with spec operations
 - `state.py`: canonical state model and reducer
-- `client.py`: lifecycle orchestration, reconnect, callbacks, command ACK handling
-  plus typed enumeration collectors (`enum_*_collect`) that consume stream items until protocol end markers.
+- `client.py`: lifecycle orchestration, reconnect, callbacks, command ACK handling,
+  typed semantic refresh methods, and typed enumeration collectors (`enum_*_collect`) that consume stream items until protocol end markers.
   Enumeration collectors raise `EnumerationTimeoutError` with command/type context when end markers are not observed in time.
-- `adapter.py`: immutable snapshot + delta/event adapter layer for Home Assistant coordinators.
-- `ha_bridge.py`: transforms adapter output into coordinator payloads + HA event bus messages.
-  Includes `HABridgeDispatcher` for runtime callback wiring.
+- `runtime.py`: typed semantic device snapshots for integrations.
+- `adapter.py`: immutable low-level snapshot + delta/event adapter for streaming consumers.
+- `controls.py`: shared normalization for device actions and remote command payloads.
 
 ## What we explicitly avoid
 

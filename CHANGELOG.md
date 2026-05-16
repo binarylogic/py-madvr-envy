@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/binarylogic/py-madvr-envy/compare/v1.0.0...v2.0.0) (2026-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* model active profiles per group
+
+### Features
+
+* model active profiles per group ([6862866](https://github.com/binarylogic/py-madvr-envy/commit/68628663a528ba52ba29dd38c848a0a5e1cde59a))
+
 ## [1.0.0](https://github.com/binarylogic/py-madvr-envy/compare/v0.2.1...v1.0.0) (2026-05-16)
 
 

@@ -219,13 +219,11 @@ async def test_refresh_device_returns_typed_semantic_snapshot():
                 "Profile.",
                 "OK",
             ],
-            "GetActiveProfile displayProfiles": ["ActiveProfile displayProfiles 1", "OK"],
             "EnumProfiles sourceProfiles": [
                 'Profile sourceProfiles_1 "Apple TV"',
                 "Profile.",
                 "OK",
             ],
-            "GetActiveProfile sourceProfiles": ["ActiveProfile sourceProfiles 1", "OK"],
         },
     )
     client = MadvrEnvyClient(
@@ -248,9 +246,7 @@ async def test_refresh_device_returns_typed_semantic_snapshot():
         "GetMaskingRatio",
         "EnumProfileGroups",
         "EnumProfiles displayProfiles",
-        "GetActiveProfile displayProfiles",
         "EnumProfiles sourceProfiles",
-        "GetActiveProfile sourceProfiles",
     ]
     assert snapshot.temperatures is not None
     assert snapshot.temperatures.gpu == 74
@@ -263,7 +259,7 @@ async def test_refresh_device_returns_typed_semantic_snapshot():
     assert snapshot.masking_ratio is not None
     assert snapshot.masking_ratio.decimal_ratio == 2.259
     assert snapshot.profiles.available is True
-    assert snapshot.profiles.active_profile_name() == "Sources: Apple TV"
+    assert snapshot.profiles.active_profile_name("sourceProfiles") is None
 
     await client.stop()
 

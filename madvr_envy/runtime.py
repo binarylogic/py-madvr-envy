@@ -73,7 +73,7 @@ class Profile:
 
     profile_id: str
     group_id: str
-    index: int
+    index: str
     name: str
 
 
@@ -90,7 +90,7 @@ class ActiveProfile:
     """Current active profile pointer."""
 
     group_id: str
-    index: int
+    index: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,7 +99,7 @@ class ProfileCatalog:
 
     groups: tuple[ProfileGroup, ...] = ()
     profiles: tuple[Profile, ...] = ()
-    active: ActiveProfile | None = None
+    active_profiles: tuple[ActiveProfile, ...] = ()
 
     @property
     def available(self) -> bool:
@@ -113,15 +113,23 @@ class ProfileCatalog:
                 return group.name
         return group_id
 
-    def active_profile_name(self) -> str | None:
-        """Return a stable label for the active profile."""
-        if self.active is None:
+    def active_for_group(self, group_id: str) -> ActiveProfile | None:
+        """Return the reported active profile for a group."""
+        for active in self.active_profiles:
+            if active.group_id == group_id:
+                return active
+        return None
+
+    def active_profile_name(self, group_id: str) -> str | None:
+        """Return a stable label for one group's active profile."""
+        active = self.active_for_group(group_id)
+        if active is None:
             return None
-        group_name = self.group_name(self.active.group_id)
+        group_name = self.group_name(active.group_id)
         for profile in self.profiles:
-            if profile.group_id == self.active.group_id and profile.index == self.active.index:
+            if profile.group_id == active.group_id and profile.index == active.index:
                 return f"{group_name}: {profile.name}"
-        return f"{group_name}: {self.active.index}"
+        return f"{group_name}: {active.index}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -272,21 +280,21 @@ def _profile_catalog(snapshot: EnvySnapshot) -> ProfileCatalog:
         group_id, index = parsed
         profiles.append(Profile(profile_id=profile_id, group_id=group_id, index=index, name=name))
 
-    active: ActiveProfile | None = None
-    if snapshot.active_profile_group is not None and snapshot.active_profile_index is not None:
-        active = ActiveProfile(
-            group_id=snapshot.active_profile_group,
-            index=snapshot.active_profile_index,
-        )
+    active_profiles = [
+        ActiveProfile(group_id=group_id, index=str(index))
+        for group_id, index in snapshot.active_profiles
+    ]
 
-    return ProfileCatalog(groups=groups, profiles=tuple(profiles), active=active)
+    return ProfileCatalog(groups=groups, profiles=tuple(profiles), active_profiles=tuple(active_profiles))
 
 
-def _parse_profile_id(profile_id: str, fallback_group: str | None) -> tuple[str, int] | None:
+def _parse_profile_id(profile_id: str, fallback_group: str | None) -> tuple[str, str] | None:
     for separator in ("_", ":"):
         group_id, found, raw_index = profile_id.rpartition(separator)
-        if found and raw_index.isdigit() and group_id:
-            return group_id, int(raw_index)
+        if found and raw_index and group_id:
+            if raw_index.startswith("profile") and raw_index.removeprefix("profile").isdigit():
+                return group_id, raw_index.removeprefix("profile")
+            return group_id, raw_index
     if profile_id.isdigit() and fallback_group:
-        return fallback_group, int(profile_id)
+        return fallback_group, profile_id
     return None

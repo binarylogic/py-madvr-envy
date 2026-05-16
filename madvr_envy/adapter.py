@@ -21,6 +21,7 @@ class EnvySnapshot:
     mac_address: str | None
     active_profile_group: str | None
     active_profile_index: int | None
+    active_profiles: tuple[tuple[str, int], ...]
     current_menu: str | None
     aspect_ratio_mode: str | None
     incoming_signal: tuple[str, str, str, str, str, str, str, str, str] | None
@@ -144,6 +145,7 @@ def snapshot_from_state(state: EnvyState) -> EnvySnapshot:
         mac_address=state.mac_address,
         active_profile_group=state.active_profile_group,
         active_profile_index=state.active_profile_index,
+        active_profiles=tuple(sorted(state.active_profiles.items(), key=lambda item: item[0])),
         current_menu=state.current_menu,
         aspect_ratio_mode=state.aspect_ratio_mode,
         incoming_signal=incoming_signal,

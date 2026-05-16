@@ -177,7 +177,7 @@ def remove_profile_from_page(full_profile_id: str, page_id: str) -> str:
     return build_command("RemoveProfileFromPage", full_profile_id, page_id)
 
 
-def activate_profile(profile_group: str | int, profile_id: int) -> str:
+def activate_profile(profile_group: str | int, profile_id: str | int) -> str:
     return build_command("ActivateProfile", str(profile_group), profile_id)
 
 

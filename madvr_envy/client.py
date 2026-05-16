@@ -267,7 +267,12 @@ class MadvrEnvyClient:
     async def set_aspect_ratio_mode(self, mode: cmd.AspectRatioMode | str, wait_for_ack: bool = True) -> Message | None:
         return await self.send_raw(cmd.set_aspect_ratio_mode(mode), wait_for_ack=wait_for_ack)
 
-    async def activate_profile(self, profile_group: str | int, profile_id: int, wait_for_ack: bool = True) -> Message | None:
+    async def activate_profile(
+        self,
+        profile_group: str | int,
+        profile_id: str | int,
+        wait_for_ack: bool = True,
+    ) -> Message | None:
         return await self.send_raw(cmd.activate_profile(profile_group, profile_id), wait_for_ack=wait_for_ack)
 
     async def get_active_profile(self, profile_group: str | int) -> ActiveProfileMessage:
@@ -347,11 +352,13 @@ class MadvrEnvyClient:
         return self.device_snapshot
 
     async def refresh_profiles(self) -> EnvyDeviceSnapshot:
-        """Refresh profile catalog and active profile state."""
+        """Refresh profile groups and profile choices."""
         groups = await self.enum_profile_groups_collect()
         for group in groups:
-            await self.enum_profiles_collect(group.group_id)
-            await self.get_active_profile(group.group_id)
+            try:
+                await self.enum_profiles_collect(group.group_id)
+            except (TimeoutError, exceptions.CommandRejectedError, exceptions.EnumerationTimeoutError):
+                self.logger.debug("Profile enumeration failed for group %s", group.group_id, exc_info=True)
         return self.device_snapshot
 
     async def refresh_device(self) -> EnvyDeviceSnapshot:

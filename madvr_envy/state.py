@@ -68,6 +68,7 @@ class EnvyState:
 
     active_profile_group: str | None = None
     active_profile_index: int | None = None
+    active_profiles: dict[str, int] = field(default_factory=dict)
 
     incoming_signal: IncomingSignalInfoMessage | None = None
     outgoing_signal: OutgoingSignalInfoMessage | None = None
@@ -185,6 +186,7 @@ class EnvyState:
         elif isinstance(message, (ActiveProfileMessage, ActivateProfileMessage)):
             self.active_profile_group = message.profile_group
             self.active_profile_index = message.profile_index
+            self.active_profiles[message.profile_group] = message.profile_index
         elif isinstance(message, (CreateProfileGroupMessage, RenameProfileGroupMessage, ProfileGroupMessage)):
             self.profile_groups[message.group_id] = message.name
         elif isinstance(message, DeleteProfileGroupMessage):

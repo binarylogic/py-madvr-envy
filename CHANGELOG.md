@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/binarylogic/py-madvr-envy/compare/v0.2.1...v1.0.0) (2026-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* replace HA-shaped bridge helpers and runtime_snapshot with typed EnvyDeviceSnapshot refresh APIs.
+
+### Features
+
+* expose typed device snapshot api ([c083424](https://github.com/binarylogic/py-madvr-envy/commit/c083424bcd4c4bb144a9ad00882db21d26d38e8f))
+
 ## [0.2.1](https://github.com/binarylogic/py-madvr-envy/compare/v0.2.0...v0.2.1) (2026-03-10)
 
 

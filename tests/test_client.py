@@ -265,6 +265,81 @@ async def test_refresh_device_returns_typed_semantic_snapshot():
 
 
 @pytest.mark.asyncio
+async def test_refresh_volatile_video_refreshes_signal_and_geometry_only():
+    transport = FakeTransport(
+        incoming_lines=["WELCOME to Envy v1.1.3"],
+        responses={
+            "GetIncomingSignalInfo": [
+                "IncomingSignalInfo 3840x2160 23.976p 2D 422 10bit HDR10 2020 TV 16:9",
+                "OK",
+            ],
+            "GetOutgoingSignalInfo": [
+                "OutgoingSignalInfo 3840x2160 23.976p 2D RGB 12bit SDR 2020 TV",
+                "OK",
+            ],
+            "GetAspectRatio": ['AspectRatio 3840:1600 2.400 240 "Panavision"', "OK"],
+            "GetMaskingRatio": ["MaskingRatio 3840:1700 2.259 220", "OK"],
+        },
+    )
+    client = MadvrEnvyClient(
+        host="unused",
+        transport_factory=FakeTransportFactory([transport]),
+        read_timeout=0.01,
+        command_timeout=0.5,
+    )
+
+    await client.start()
+    await client.wait_synced(timeout=1)
+
+    snapshot = await client.refresh_volatile_video()
+
+    assert transport.sent == [
+        "GetIncomingSignalInfo",
+        "GetOutgoingSignalInfo",
+        "GetAspectRatio",
+        "GetMaskingRatio",
+    ]
+    assert snapshot.signal_present is True
+    assert snapshot.aspect_ratio is not None
+    assert snapshot.masking_ratio is not None
+
+    await client.stop()
+
+
+@pytest.mark.asyncio
+async def test_refresh_volatile_video_clears_geometry_on_no_signal():
+    transport = FakeTransport(
+        incoming_lines=[
+            "WELCOME to Envy v1.1.3",
+            'AspectRatio 3840:1600 2.400 240 "Panavision"',
+            "MaskingRatio 3840:1700 2.259 220",
+        ],
+        responses={
+            "GetIncomingSignalInfo": ["NoSignal", "OK"],
+        },
+    )
+    client = MadvrEnvyClient(
+        host="unused",
+        transport_factory=FakeTransportFactory([transport]),
+        read_timeout=0.01,
+        command_timeout=0.5,
+    )
+
+    await client.start()
+    await client.wait_synced(timeout=1)
+    await asyncio.wait_for(_wait_for(lambda: client.device_snapshot.masking_ratio is not None), timeout=1)
+
+    snapshot = await client.refresh_volatile_video()
+
+    assert transport.sent == ["GetIncomingSignalInfo"]
+    assert snapshot.signal_present is False
+    assert snapshot.aspect_ratio is None
+    assert snapshot.masking_ratio is None
+
+    await client.stop()
+
+
+@pytest.mark.asyncio
 async def test_command_wait_for_ack_raises_on_error_message():
     transport = FakeTransport(incoming_lines=["WELCOME to Envy v1.1.3"])
     client = MadvrEnvyClient(

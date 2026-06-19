@@ -67,6 +67,10 @@ def test_signal_and_profile_updates():
 
     state.apply(NoSignalMessage())
     assert state.signal_present is False
+    assert state.incoming_signal is None
+    assert state.outgoing_signal is None
+    assert state.aspect_ratio is None
+    assert state.masking_ratio is None
 
     state.apply(ActiveProfileMessage(profile_group="SOURCE", profile_index=2))
     assert state.active_profile_group == "SOURCE"

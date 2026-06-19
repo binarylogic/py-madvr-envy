@@ -53,6 +53,17 @@ class MaskingRatio:
 
 
 @dataclass(frozen=True, slots=True)
+class VideoState:
+    """Freshness-qualified video geometry for control-system consumers."""
+
+    signal_present: bool | None = None
+    aspect_ratio: AspectRatio | None = None
+    masking_ratio: MaskingRatio | None = None
+    updated_at: float | None = None
+    trusted: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class Temperatures:
     """Device temperature readings."""
 
@@ -150,6 +161,7 @@ class EnvyDeviceSnapshot:
     outgoing_signal: SignalInfo | None = None
     aspect_ratio: AspectRatio | None = None
     masking_ratio: MaskingRatio | None = None
+    video: VideoState = field(default_factory=VideoState)
     profiles: ProfileCatalog = field(default_factory=ProfileCatalog)
 
     @property
@@ -180,6 +192,8 @@ def device_snapshot_from_snapshot(
     connected: bool,
 ) -> EnvyDeviceSnapshot:
     """Build a semantic device snapshot from an adapter snapshot."""
+    aspect_ratio = _aspect_ratio(snapshot.aspect_ratio)
+    masking_ratio = _masking_ratio(snapshot.masking_ratio)
     return EnvyDeviceSnapshot(
         power_state=power_state_from_snapshot(snapshot),
         connected=connected,
@@ -193,8 +207,14 @@ def device_snapshot_from_snapshot(
         temperatures=_temperatures(snapshot.temperatures),
         incoming_signal=_incoming_signal(snapshot.incoming_signal),
         outgoing_signal=_outgoing_signal(snapshot.outgoing_signal),
-        aspect_ratio=_aspect_ratio(snapshot.aspect_ratio),
-        masking_ratio=_masking_ratio(snapshot.masking_ratio),
+        aspect_ratio=aspect_ratio,
+        masking_ratio=masking_ratio,
+        video=VideoState(
+            signal_present=snapshot.signal_present,
+            aspect_ratio=aspect_ratio,
+            masking_ratio=masking_ratio,
+            trusted=snapshot.signal_present is True and aspect_ratio is not None and masking_ratio is not None,
+        ),
         profiles=_profile_catalog(snapshot),
     )
 

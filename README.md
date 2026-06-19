@@ -77,6 +77,27 @@ These helpers wait for protocol end markers and raise `EnumerationTimeoutError` 
 
 Use `client.refresh_device()` when an integration needs a complete, typed view of the device. The client owns the protocol request sequence for runtime telemetry, video geometry, temperatures, and profiles, then returns an `EnvyDeviceSnapshot`.
 
+Use `EnvyRuntime` for long-running control-system integrations that need reliable video geometry:
+
+```python
+from madvr_envy import EnvyRuntime, MadvrEnvyClient, RefreshPolicy
+
+client = MadvrEnvyClient(host="192.168.1.100")
+runtime = EnvyRuntime(
+    client,
+    policy=RefreshPolicy(
+        volatile_video_interval=5.0,
+        geometry_debounce=0.75,
+        stale_after=15.0,
+    ),
+)
+
+runtime.subscribe(lambda snapshot: print(snapshot.video.trusted, snapshot.video.masking_ratio))
+await runtime.start()
+```
+
+`EnvyRuntime` keeps volatile video state fresh without continuously refreshing static catalogs. It reacts to push notifications, debounces display changes, polls signal/geometry while awake, clears geometry on `NoSignal`, and marks stale geometry untrusted.
+
 For lower-level streaming consumers, `madvr_envy.adapter.EnvyStateAdapter` converts mutable runtime state into immutable snapshots plus typed deltas/events:
 
 You can wire this directly through the client:

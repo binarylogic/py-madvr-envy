@@ -346,6 +346,13 @@ class MadvrEnvyClient:
         await self.get_masking_ratio()
         return self.device_snapshot
 
+    async def refresh_volatile_video(self) -> EnvyDeviceSnapshot:
+        """Refresh signal and geometry state without refreshing static catalogs."""
+        await self.refresh_signal()
+        if self.state.signal_present is True:
+            await self.refresh_video_geometry()
+        return self.device_snapshot
+
     async def refresh_temperatures(self) -> EnvyDeviceSnapshot:
         """Refresh temperature state and return the resulting device snapshot."""
         await self.get_temperatures()

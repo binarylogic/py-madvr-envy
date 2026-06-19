@@ -18,6 +18,9 @@
   typed semantic refresh methods, and typed enumeration collectors (`enum_*_collect`) that consume stream items until protocol end markers.
   Enumeration collectors raise `EnumerationTimeoutError` with command/type context when end markers are not observed in time.
 - `runtime.py`: typed semantic device snapshots for integrations.
+- `runtime_manager.py`: long-running integration runtime that owns volatile video
+  freshness policy, display-change debounce, stale/trusted video semantics, and
+  periodic signal/geometry refreshes.
 - `adapter.py`: immutable low-level snapshot + delta/event adapter for streaming consumers.
 - `controls.py`: shared normalization for device actions and remote command payloads.
 

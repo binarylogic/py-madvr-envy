@@ -160,6 +160,10 @@ class EnvyState:
             self.last_system_action = "ReloadSoftware"
         elif isinstance(message, NoSignalMessage):
             self.signal_present = False
+            self.incoming_signal = None
+            self.outgoing_signal = None
+            self.aspect_ratio = None
+            self.masking_ratio = None
         elif isinstance(message, OpenMenuMessage):
             self.current_menu = message.menu
         elif isinstance(message, CloseMenuMessage):

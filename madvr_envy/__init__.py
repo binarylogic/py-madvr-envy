@@ -13,7 +13,9 @@ from madvr_envy.runtime import (
     ProfileGroup,
     SignalInfo,
     Temperatures,
+    VideoState,
 )
+from madvr_envy.runtime_manager import EnvyRuntime, RefreshPolicy
 
 __all__ = [
     "MadvrEnvyClient",
@@ -27,6 +29,9 @@ __all__ = [
     "ProfileGroup",
     "SignalInfo",
     "Temperatures",
+    "VideoState",
+    "EnvyRuntime",
+    "RefreshPolicy",
     "commands",
     "adapter",
     "runtime",

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/binarylogic/py-madvr-envy/compare/v2.0.0...v2.1.0) (2026-06-19)
+
+
+### Features
+
+* add Envy runtime freshness policy ([cfbeb00](https://github.com/binarylogic/py-madvr-envy/commit/cfbeb0066fb27bbab880d014ff7c4f683786dd8a))
+
 ## [2.0.0](https://github.com/binarylogic/py-madvr-envy/compare/v1.0.0...v2.0.0) (2026-05-16)
 
 
